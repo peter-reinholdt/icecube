@@ -2,6 +2,7 @@
 import sys
 import grid
 import cube
+import numpy as np
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
