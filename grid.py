@@ -1,9 +1,26 @@
 #!/usr/bin/env python
+from __future__ import division
 import numpy as np
+import horton
 
 
 class griddata(object):
-    def __init__(self, origin, pmin, pmax, npts):
+    def __init__(self, qmfilename, npts=np.array([120, 120, 120]), bufsize=10.0):
+        #load qm data
+        IO                  = horton.IOData.from_file(qmfilename)
+        self.dm             = IO.dm
+        self.icharges       = IO.numbers
+        self.fcharges       = IO.numbers.astype(np.float64)
+        self.obasis         = IO.obasis
+        self.natoms         = len(self.icharges)
+        self.coordinates    = IO.coordinates
+
+        #get origin pmin, pmax
+        pmin = np.min(self.coordinates, axis=0) - bufsize
+        pmax = np.max(self.coordinates, axis=0) + bufsize
+
+        origin = pmin
+
         self.Nx = npts[0]
         self.Ny = npts[1]
         self.Nz = npts[2]
@@ -17,10 +34,13 @@ class griddata(object):
         self.yz = 0.0
         self.zx = 0.0
         self.zy = 0.0
-        self.xrange = np.linspace(pmin[0], pmax[0], npts[0])
-        self.yrange = np.linspace(pmin[1], pmax[1], npts[1])
-        self.zrange = np.linspace(pmin[2], pmax[2], npts[2])
-        self.xyzgrid = np.zeros((Nx*Ny*Nz,3))
+        self.xrange  = np.linspace(pmin[0], pmax[0], npts[0])
+        self.yrange  = np.linspace(pmin[1], pmax[1], npts[1])
+        self.zrange  = np.linspace(pmin[2], pmax[2], npts[2])
+        self.xyzgrid = np.zeros((Nx*Ny*Nz,3), dtype=np.float64)
+        self.make_xyz_grid()
+        self.data    = np.zeros((Nx*Ny*Nz),   dtype=np.float64)
+
 
 
     def make_xyz_grid(self):
@@ -32,3 +52,11 @@ class griddata(object):
                     self.xyzgrid[counter, 1] = self.xrange[j]
                     self.xyzgrid[counter, 2] = self.xrange[k]
                     counter += 1
+    
+
+    def compute_density(self):
+        self.data = self.compute_grid_esp_dm(self.dm, self.xyzgrid, self.data)
+
+
+    def compute_potential(self):
+        self.data = self.compute_grid_esp_dm(self.dm, self.xyzgrid, self.fcharges, self.data)
