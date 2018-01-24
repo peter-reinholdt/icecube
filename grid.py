@@ -2,6 +2,7 @@
 from __future__ import division
 import numpy as np
 import horton
+from mpi4py import MPI
 
 
 class griddata(object):
@@ -55,8 +56,75 @@ class griddata(object):
     
 
     def compute_density(self):
-        self.data = self.obasis.compute_grid_density_dm(self.dm, self.xyzgrid, self.data)
+        if MPI.COMM_WORLD.Get_size() == 1:
+            self.data = self.obasis.compute_grid_density_dm(self.dm, self.xyzgrid)
+        else:
+            self.data = _compute_density(self.obasis, self.coordinates, self.dm, self.xyzgrid)
 
 
     def compute_potential(self):
-        self.data = self.obasis.compute_grid_esp_dm(self.dm, self.xyzgrid, self.fcharges, self.data)
+        if MPI.COMM_WORLD.Get_size() == 1:
+            self.data = self.obasis.compute_grid_esp_dm(self.dm, self.coordinates, self.fcharges, self.xyzgrid)
+        else:
+            self.data = _compute_potential(self.obasis, self.dm, self.coordinates, self.fcharges, self.xyzgrid)
+
+def _compute_density(obasis, dm, xyzgrid):
+    comm = MPI.COMM_WORLD
+    size = comm.Get_size()
+    rank = comm.Get_rank()
+    #each rank is responsible for a subset of the grid
+    chunksize = xyzgrid.shape[0] // size
+    start = rank * chunksize
+    end   = (rank+1) * chunksize
+    if rank == (size - 1):
+        end = xyzgrid.shape[0] 
+    density_chunk = obasis.compute_grid_density_dm(dm, xyzgrid[start:end,:])
+    
+    #receive data from slaves
+    if rank == 0:
+        data = np.zeros(xyzgrid.shape[0])
+        loc = 0
+        data[loc:loc+density_chunk.shape[0]] = density_chunk
+        loc += density_chunk.shape[0]
+        for i in range(1,size):
+            print("I am rank 0 and want to received something from rank {}".format(i))
+            comm.Recv(density_chunk, source=i, tag=13)
+            data[loc:loc+density_chunk.shape[0]] = density_chunk
+            loc += density_chunk.shape[0]
+    else:
+        comm.Send(density_chunk, dest=0, tag=13)
+    if rank == 0:
+        return data
+    else:
+        return
+
+
+def _compute_potential(obasis, dm, coordinates, charges, xyzgrid):
+    comm = MPI.COMM_WORLD
+    size = comm.Get_size()
+    rank = comm.Get_rank()
+    #each rank is responsible for a subset of the grid
+    chunksize = xyzgrid.shape[0] // size
+    start = rank * chunksize
+    end   = (rank+1) * chunksize
+    if rank == (size - 1):
+        end = xyzgrid.shape[0] 
+
+    potential_chunk = obasis.compute_grid_esp_dm(dm, coordinates, charges, xyzgrid[start:end,:])
+    
+    #receive data from slaves
+    if rank == 0:
+        data = np.zeros(xyzgrid.shape[0])
+        loc = 0
+        data[loc:loc+potential_chunk.shape[0]] = potential_chunk
+        loc += potential_chunk.shape[0]
+        for i in range(1,size):
+            comm.Recv(potential_chunk, source=i, tag=13)
+            data[loc:loc+potential_chunk.shape[0]] = potential_chunk
+            loc += potential_chunk.shape[0]
+    else:
+        comm.Send(potential_chunk, dest=0, tag=13)
+    if rank == 0:
+        return data
+    else:
+        return
