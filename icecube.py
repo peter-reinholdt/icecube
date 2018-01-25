@@ -15,6 +15,6 @@ if __name__ == "__main__":
 
     #write density
     gr = grid.griddata(qmfilename)
-    gr.compute_potential()
+    gr.compute_density()
     if MPI.COMM_WORLD.Get_rank() == 0:
         cube.write_cube("{}_rho.cube".format(qmfilename), gr)

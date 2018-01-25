@@ -6,7 +6,7 @@ from mpi4py import MPI
 
 
 class griddata(object):
-    def __init__(self, qmfilename, npts=np.array([120, 120, 120]), bufsize=5.0):
+    def __init__(self, qmfilename, npts=np.array([120, 120, 120]), bufsize=2.5):
         #load qm data
         IO                  = horton.IOData.from_file(qmfilename)
         self.dm             = IO.get_dm_full()
@@ -16,11 +16,12 @@ class griddata(object):
         self.natoms         = len(self.icharges)
         self.coordinates    = IO.coordinates
 
-        self.center_of_charge = np.sum(self.coordinates*self.fcharges[:,np.newaxis], axis=0) / np.sum(self.fcharges)
-        
-        pmin = self.center_of_charge - bufsize
-        pmax = self.center_of_charge + bufsize
-        print(pmin, pmax)
+        #self.center_of_charge = np.sum(self.coordinates*self.fcharges[:,np.newaxis], axis=0) / np.sum(self.fcharges)
+        pmin = np.min(self.coordinates, axis=0) - bufsize
+        pmax = np.max(self.coordinates, axis=0) + bufsize
+        #pmin = self.center_of_charge - bufsize
+        #pmax = self.center_of_charge + bufsize
+        #print(pmin, pmax)
         self.origin = pmin
 
         self.Nx = npts[0]
@@ -59,7 +60,7 @@ class griddata(object):
         if MPI.COMM_WORLD.Get_size() == 1:
             self.data = self.obasis.compute_grid_density_dm(self.dm, self.xyzgrid)
         else:
-            self.data = _compute_density(self.obasis, self.coordinates, self.dm, self.xyzgrid)
+            self.data = _compute_density(self.obasis, self.dm, self.xyzgrid)
 
 
     def compute_potential(self):
