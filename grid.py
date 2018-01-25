@@ -2,11 +2,12 @@
 from __future__ import division
 import numpy as np
 import horton
+import sys
 from mpi4py import MPI
 
 
 class griddata(object):
-    def __init__(self, qmfilename, npts=np.array([120, 120, 120]), bufsize=2.5):
+    def __init__(self, qmfilename, npts=np.array([60,60,60]), bufsize=2.5):
         #load qm data
         IO                  = horton.IOData.from_file(qmfilename)
         self.dm             = IO.get_dm_full()
@@ -15,6 +16,7 @@ class griddata(object):
         self.obasis         = IO.obasis
         self.natoms         = len(self.icharges)
         self.coordinates    = IO.coordinates
+        self.name           = qmfilename
 
         #self.center_of_charge = np.sum(self.coordinates*self.fcharges[:,np.newaxis], axis=0) / np.sum(self.fcharges)
         pmin = np.min(self.coordinates, axis=0) - bufsize
@@ -56,19 +58,45 @@ class griddata(object):
                     counter += 1
     
 
-    def compute_density(self):
-        if MPI.COMM_WORLD.Get_size() == 1:
+    def compute_density(self, nprocs=1):
+        print(nprocs, type(nprocs))
+        if nprocs == 1:
             self.data = self.obasis.compute_grid_density_dm(self.dm, self.xyzgrid)
         else:
-            self.data = _compute_density(self.obasis, self.dm, self.xyzgrid)
+            comm = MPI.COMM_SELF.Spawn(sys.executable, args="density_worker.py", maxprocs=nprocs)
+            for iproc in range(nprocs):
+                comm.send(self.name, dest=iproc, tag=11)
+            chunksize = self.xyzgrid.shape[0] // nprocs
+            for iproc in range(nprocs):
+                start = iproc * chunksize
+                end   = (iproc+1) * chunksize
+                if iproc == (nprocs - 1):
+                    end = self.xyzgrid.shape[0] 
+                comm.Recv(self.data[start:end], source=iproc, tag=13)
+            comm.Disconnect()
 
 
-    def compute_potential(self):
-        if MPI.COMM_WORLD.Get_size() == 1:
+
+
+    def compute_potential(self, nprocs=1):
+        if nprocs == 1:
             self.data = self.obasis.compute_grid_esp_dm(self.dm, self.coordinates, self.fcharges, self.xyzgrid)
         else:
-            self.data = _compute_potential(self.obasis, self.dm, self.coordinates, self.fcharges, self.xyzgrid)
+            comm = MPI.COMM_SELF.Spawn(sys.executable, args="potential_worker.py", maxprocs=nprocs)
+            for iproc in range(nprocs):
+                comm.send(self.name, dest=iproc, tag=11)
+            chunksize = self.xyzgrid.shape[0] // nprocs
+            for iproc in range(nprocs):
+                start = iproc * chunksize
+                end   = (iproc+1) * chunksize
+                if iproc == (nprocs - 1):
+                    end = self.xyzgrid.shape[0] 
+                comm.Recv(self.data[start:end], source=iproc, tag=13)
+            comm.Disconnect()
 
+
+
+"""
 def _compute_density(obasis, dm, xyzgrid):
     comm = MPI.COMM_WORLD
     size = comm.Get_size()
@@ -129,3 +157,4 @@ def _compute_potential(obasis, dm, coordinates, charges, xyzgrid):
         return data
     else:
         return
+"""
