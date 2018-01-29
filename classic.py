@@ -43,5 +43,5 @@ def dipole_potential(dipoles, coordinates, gridpoints):
             rij = ri - rj
             rij_inv_cubed = (1.0/np.sqrt(np.dot(rij,rij)))**3 #1/|r|**3
             for k in range(3):
-                grid[j] -= dipoles[i,k] * rij[k] * rij_inv_cubed[i,j] #-mu_x * x / |r|**3
+                grid[j] -= dipoles[i,k] * rij[k] * rij_inv_cubed #-mu_x * x / |r|**3
     return grid

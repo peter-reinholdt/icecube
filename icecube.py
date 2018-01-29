@@ -1,4 +1,4 @@
-#!mpirun python
+#!/usr/bin/env python
 import sys
 import grid
 import cube
@@ -49,14 +49,14 @@ if __name__ == "__main__":
         print("...Finished!")
         if args.classicfile:
             print("Computing contribution due to classical point charges...")
-            esp = charge_potential(charges, coordinates, gr.xyzgrid)
+            esp = classic.charge_potential(charges, coordinates, gr.xyzgrid)
             gr.data -= esp
             print("...Finished!")
             print("Writing data to cube...")
             cube.write_cube("{}_QMESP_q.cube".format(args.qmfile), gr)
 
             print("Computing contribution due to classical point dipoles...")
-            esp = dipole_potential(dipoles, coordinates, gr.xyzgrid)
+            esp = classic.dipole_potential(dipoles, coordinates, gr.xyzgrid)
             gr.data -= esp
             print("...Finished!")
             print("Writing data to cube...")
