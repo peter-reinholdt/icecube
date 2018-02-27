@@ -16,7 +16,7 @@ if __name__ == "__main__":
     parser.add_argument('--density', dest='do_density', action='store_true', help='Request density cube file (true/false).')
     parser.add_argument('--potential', dest='do_potential', action='store_true', help='Request potential cube file (true/false).')
     parser.add_argument('--cube-density', dest='cube_density', default=1.0, help='Points/bohr to output to cube file.')
-    parser.add_argument('--surface-potential' dest='do_surface_potential', action='store_true', help='Request calculation of ESP at molecular vdW surface')
+    parser.add_argument('--surface-potential', dest='do_surface_potential', action='store_true', help='Request calculation of ESP at molecular vdW surface')
     parser.add_argument('--vdw-scale', dest='vdw_scale', default=2.0, help='Set the vdw radius scale parameter.') 
     parser.add_argument('--point-density', dest='point_density', default=5.0, help='Set the vdw surface point density')
 
@@ -72,14 +72,14 @@ if __name__ == "__main__":
         print("Computing ESP at molecular surface of {}*vdW with a {} point density".format(args.vdw_scale, args.point_density))
 
         #vdw surface
-        surface = surfaces.compute_surface_vdw(gr.charges, gr.coordinates, pointdensity=args.point_density, radius_scale=args.radius_scale)
+        surface = surfaces.compute_surface_vdW(gr.icharges, gr.coordinates, pointdensity=args.point_density, radius_scale=args.vdw_scale)
         #update grid object
         gr.xyzgrid = surface
         gr.data = np.zeros(surface.shape[0], dtype=np.float64)
         #esp @ surface
         gr.compute_potential(nprocs=args.nprocs)
         #write to disk
-        with open("", "w") as f:
+        with open("{}_{}_{}.dat".format(args.qmfile, args.vdw_scale, args.point_density), "w") as f:
             f.write("#Rx,Ry,Rz,QM_ESP(R)")
             for i in range(gr.xyzgrid.shape[0]):
                 f.write("{} {} {} {}\n".format(gr.xyzgrid[i,0], gr.xyzgrid[i,1], gr.xyzgrid[i,2], gr.data[i]))
