@@ -15,10 +15,10 @@ if __name__ == "__main__":
     parser.add_argument('-N',  '--nprocs', dest='nprocs', default=1, type=int, help='Number of MPI processes to use')
     parser.add_argument('--density', dest='do_density', action='store_true', help='Request density cube file (true/false).')
     parser.add_argument('--potential', dest='do_potential', action='store_true', help='Request potential cube file (true/false).')
-    parser.add_argument('--cube-density', dest='cube_density', default=1.0, help='Points/bohr to output to cube file.')
+    parser.add_argument('--cube-density', dest='cube_density', default=1.0, type=float, help='Points/bohr to output to cube file.')
     parser.add_argument('--surface-potential', dest='do_surface_potential', action='store_true', help='Request calculation of ESP at molecular vdW surface')
-    parser.add_argument('--vdw-scale', dest='vdw_scale', default=2.0, help='Set the vdw radius scale parameter.') 
-    parser.add_argument('--point-density', dest='point_density', default=5.0, help='Set the vdw surface point density')
+    parser.add_argument('--vdw-scale', dest='vdw_scale', default=2.0, type=float, help='Set the vdw radius scale parameter.') 
+    parser.add_argument('--point-density', dest='point_density', default=5.0, type=float, help='Set the vdw surface point density')
 
     args = parser.parse_args()
     if len(sys.argv) == 1:
@@ -80,7 +80,7 @@ if __name__ == "__main__":
         gr.compute_potential(nprocs=args.nprocs)
         #write to disk
         with open("{}_{}_{}.dat".format(args.qmfile, args.vdw_scale, args.point_density), "w") as f:
-            f.write("#Rx,Ry,Rz,QM_ESP(R)")
+            f.write("#Rx,Ry,Rz,QM_ESP(R)\n")
             for i in range(gr.xyzgrid.shape[0]):
                 f.write("{} {} {} {}\n".format(gr.xyzgrid[i,0], gr.xyzgrid[i,1], gr.xyzgrid[i,2], gr.data[i]))
 
