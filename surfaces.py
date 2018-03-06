@@ -23,7 +23,8 @@ def compute_vdW_surface(atomic_charges, coordinates, surface_point_density=5.0, 
     natoms = coordinates.shape[0]
     points = np.zeros(natoms, dtype=np.int64)
     for i in range(natoms):
-        points[i] = np.int(surface_point_density*4*np.pi*surface_vdW_scale*vdw_radii[atomic_charges[i]])
+        #        area of sphere is               4*pi    *        r**2
+        points[i] = np.int(surface_point_density*4*np.pi*(surface_vdW_scale*vdw_radii[atomic_charges[i]])**2)
     # grid = [x, y, z]
     grid = np.zeros((np.sum(points), 3), dtype=np.float64)
     idx = 0
@@ -50,7 +51,7 @@ def compute_vdW_surface(atomic_charges, coordinates, surface_point_density=5.0, 
     
     #This is the distance points have to be apart
     #since they are from the same atom
-    grid_spacing = dist(grid[0,:], grid[1,:])
+    grid_spacing = dist(grid[1,:], grid[2,:])
     
     #Remove overlap all points to close to any atom
     not_near_atom = np.ones(grid.shape[0], dtype=boolean)
@@ -67,7 +68,7 @@ def compute_vdW_surface(atomic_charges, coordinates, surface_point_density=5.0, 
         for j in range(i+1, grid.shape[0]):
             if (not not_overlapping[j]): continue #already marked for removal
             r = dist(grid[i,:], grid[j,:])
-            if 0.90 * grid_spacing > r:
+            if 0.80 * grid_spacing > r:
                 not_overlapping[j] = False
     grid = grid[not_overlapping]
     return grid
