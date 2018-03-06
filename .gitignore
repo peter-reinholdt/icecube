@@ -1,2 +1,3 @@
 *.pyc
 *.cube
+__pycache__
