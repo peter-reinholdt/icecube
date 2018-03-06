@@ -4,25 +4,30 @@ import numpy as np
 import horton
 import sys
 from mpi4py import MPI
+from surfaces import compute_vdW_surface
+from utilities import container
 
 
 class griddata(object):
-    def __init__(self, qmfilename, grid_density=6.0, bufsize=5.0):
-        #load qm data
-        IO                  = horton.IOData.from_file(qmfilename)
-        self.dm             = IO.get_dm_full()
-        self.icharges       = IO.numbers
-        self.fcharges       = IO.numbers.astype(np.float64)
-        self.obasis         = IO.obasis
-        self.natoms         = len(self.icharges)
-        self.coordinates    = IO.coordinates
-        self.name           = qmfilename
+    def __init__(self, qm_file_name):
+        IO = horton.IOData.from_file(qm_file_name)
+        self.dm = IO.get_dm_full()
+        self.icharges = IO.numbers
+        self.fcharges = IO.numbers.astype(np.float64)
+        self.obasis = IO.obasis
+        self.natoms = len(self.icharges)
+        self.coordinates = IO.coordinates
+        self.qm_file_name = qm_file_name
+        self.xyzgrid = np.zeros((0,3), dtype=np.float64)
+        self.data = np.zeros((0,),  dtype=np.float64)
+        self.grid_type = None
 
-        pmin = np.min(self.coordinates, axis=0) - bufsize
-        pmax = np.max(self.coordinates, axis=0) + bufsize
+
+    def get_cubic_grid(self, grid_buffer, grid_density):
+        pmin = np.min(self.coordinates, axis=0) - grid_buffer
+        pmax = np.max(self.coordinates, axis=0) + grid_buffer
         npts = ((pmax - pmin)*grid_density).astype(np.int)
         self.origin = pmin
-
         self.Nx = npts[0]
         self.Ny = npts[1]
         self.Nz = npts[2]
@@ -41,9 +46,6 @@ class griddata(object):
         self.xyzgrid = np.zeros((self.Nx*self.Ny*self.Nz,3), dtype=np.float64)
         self.make_xyz_grid()
         self.data    = np.zeros((self.Nx*self.Ny*self.Nz),   dtype=np.float64)
-
-
-    def make_xyz_grid(self):
         counter = 0
         for i in range(self.Nx):
             for j in range(self.Ny):
@@ -52,10 +54,21 @@ class griddata(object):
                     self.xyzgrid[counter, 1] = self.yrange[j]
                     self.xyzgrid[counter, 2] = self.zrange[k]
                     counter += 1
-    
+        self.grid_type = 'cubic'
+        self.grid_buffer = grid_buffer
+        self.grid_density = grid_density
+
+
+
+    def get_vdW_surface(self, surface_vdW_scale, surface_point_density):
+        self.xyzgrid = compute_vdW_surface(self.icharges, self.coordinates, surface_point_density=surface_point_density, surface_vdW_scale=surface_vdW_scale)
+        self.data = np.zeros((self.xyzgrid.shape[0]), dtype=np.float64) 
+        self.grid_type = 'surface'
+        self.surface_vdW_scale = surface_vdW_scale
+        self.surface_point_density = surface_point_density
+
 
     def compute_density(self, nprocs=1):
-        print(nprocs, type(nprocs))
         if nprocs == 1:
             self.data = self.obasis.compute_grid_density_dm(self.dm, self.xyzgrid)
         else:
@@ -63,7 +76,11 @@ class griddata(object):
                     args="{}/density_worker.py".format(sys.path[0]), 
                     maxprocs=nprocs)
             for iproc in range(nprocs):
-                comm.send(self.name, dest=iproc, tag=11)
+                if self.grid_type == 'cubic':
+                    work_info = container(qm_file_name=self.qm_file_name, grid_type=self.grid_type, grid_buffer=self.grid_buffer, grid_density=self.grid_density)
+                elif self.grid_type == 'surface':
+                    work_info = container(qm_file_name=self.qm_file_name, grid_type=self.grid_type, surface_vdW_scale=self.surface_vdW_scale, surface_point_density=self.surface_point_density)
+                comm.send(work_info, dest=iproc, tag=11)
             chunksize = self.xyzgrid.shape[0] // nprocs
             for iproc in range(nprocs):
                 start = iproc * chunksize
@@ -82,7 +99,11 @@ class griddata(object):
                     args="{}/potential_worker.py".format(sys.path[0]), 
                     maxprocs=nprocs)
             for iproc in range(nprocs):
-                comm.send(self.name, dest=iproc, tag=11)
+                if self.grid_type == 'cubic':
+                    work_info = container(qm_file_name=self.qm_file_name, grid_type=self.grid_type, grid_buffer=self.grid_buffer, grid_density=self.grid_density)
+                elif self.grid_type == 'surface':
+                    work_info = container(qm_file_name=self.qm_file_name, grid_type=self.grid_type, surface_vdW_scale=self.surface_vdW_scale, surface_point_density=self.surface_point_density)
+                comm.send(work_info, dest=iproc, tag=11)
             chunksize = self.xyzgrid.shape[0] // nprocs
             for iproc in range(nprocs):
                 start = iproc * chunksize
