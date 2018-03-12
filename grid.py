@@ -44,7 +44,7 @@ class griddata(object):
         self.yrange  = np.linspace(pmin[1], pmax[1], npts[1])
         self.zrange  = np.linspace(pmin[2], pmax[2], npts[2])
         self.xyzgrid = np.zeros((self.Nx*self.Ny*self.Nz,3), dtype=np.float64)
-        self.make_xyz_grid()
+        #self.make_xyz_grid()
         self.data    = np.zeros((self.Nx*self.Ny*self.Nz),   dtype=np.float64)
         counter = 0
         for i in range(self.Nx):

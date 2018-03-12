@@ -3,7 +3,7 @@
 
 
 def write_cube(filename, griddata):
-    if griddata.grid_type != 'cube':
+    if griddata.grid_type != 'cubic':
         raise ValueError("Only cubic grids can be written to a cube file")
     with open(filename, "w") as f:
         #header, comments
