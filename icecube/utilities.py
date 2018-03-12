@@ -62,3 +62,18 @@ number2symbol = {1: "H", 2: "He", 3: "Li", 4: "Be", 5: "B", 6: "C", 7: "N", 8: "
 class container(object):
     def __init__(self, **kwargs):
         self.__dict__.update(kwargs)
+
+
+def to_float(iterable):
+    return [float(x) for x in iterable]
+
+
+def to_int(iterable):
+    return [int(x) for x in iterable]
+
+
+def split_to_float(string):
+    return to_float(string.split())
+
+def split_to_int(string):
+    return to_int(string.split())
