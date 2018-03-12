@@ -31,9 +31,6 @@ class griddata(object):
         self.Nx = npts[0]
         self.Ny = npts[1]
         self.Nz = npts[2]
-        self.xx = (pmax[0] - pmin[0]) / npts[0]
-        self.yy = (pmax[1] - pmin[1]) / npts[1]
-        self.zz = (pmax[2] - pmin[2]) / npts[2]
         self.xy = 0.0
         self.xz = 0.0
         self.yx = 0.0
@@ -43,6 +40,9 @@ class griddata(object):
         self.xrange  = np.linspace(pmin[0], pmax[0], npts[0])
         self.yrange  = np.linspace(pmin[1], pmax[1], npts[1])
         self.zrange  = np.linspace(pmin[2], pmax[2], npts[2])
+        self.xx = self.xrange[1] - self.xrange[0]
+        self.yy = self.yrange[1] - self.yrange[0]
+        self.zz = self.zrange[1] - self.zrange[0]
         self.xyzgrid = np.zeros((self.Nx*self.Ny*self.Nz,3), dtype=np.float64)
         #self.make_xyz_grid()
         self.data    = np.zeros((self.Nx*self.Ny*self.Nz),   dtype=np.float64)
