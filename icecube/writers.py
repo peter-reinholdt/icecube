@@ -25,7 +25,7 @@ def write_cube(filename, griddata):
         for i in range(griddata.Nx):
             for j in range(griddata.Ny):
                 for k in range(griddata.Nz):
-                    f.write("{:.6E}  ".format(griddata.data[counter]))
+                    f.write("{:.6E} ".format(griddata.data[counter]))
                     counter += 1
                     if counter % 6 == 0:
                         f.write("\n")
