@@ -90,7 +90,7 @@ if __name__ == "__main__":
                 for i in range(gr.xyzgrid.shape[0]):
                     f.write("{} {} {} {}\n".format(gr.xyzgrid[i,0], gr.xyzgrid[i,1], gr.xyzgrid[i,2], charge_esp[i]))
             print("Computing ESP due to classic dipoles at the same gridpoints")
-            dipole_esp = classic.dipole_potential(charges, coordinates, gr.xyzgrid)
+            dipole_esp = classic.dipole_potential(dipoles, coordinates, gr.xyzgrid)
             with open("{}_{}_{}_dipole.dat".format(args.qm_file_name, args.surface_vdW_scale, args.surface_point_density), "w") as f:
                 f.write("#Rx,Ry,Rz,dipole_ESP(R)\n")
                 for i in range(gr.xyzgrid.shape[0]):

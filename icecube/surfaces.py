@@ -4,6 +4,18 @@ import numpy as np
 from numba import jit, boolean
 from utilities import vdw_radii
 
+@jit('float64(float64[:], float64[:])', nopython=True, cache=True)
+def dist(x,y):
+    """
+    Compute distance between vectors x,y
+    Assumes that x,y have the same length
+    """
+    result = 0.0
+    for i in range(x.shape[0]):
+        result += (x[i] - y[i])**2
+    return np.sqrt(result)
+
+
 @jit(nopython=True, cache=True)
 def compute_vdW_surface(atomic_charges, coordinates, surface_point_density=5.0, surface_vdW_scale=1.4):
     """
@@ -47,7 +59,7 @@ def compute_vdW_surface(atomic_charges, coordinates, surface_point_density=5.0, 
             grid[idx, 2] = z + coordinates[i,2]
             idx += 1
             
-    dist = lambda i,j: np.sqrt(np.sum((i-j)**2))
+   
     
     #This is the distance points have to be apart
     #since they are from the same atom

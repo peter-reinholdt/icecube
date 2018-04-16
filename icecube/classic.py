@@ -29,7 +29,7 @@ def charge_potential(charges, coordinates, gridpoints):
 def dipole_potential(dipoles, coordinates, gridpoints):
     """
     Evaluate potential of dipoles on specified gridpoints
-    dipoles     : 1D array of dipoles              shape=(ndipoles,)
+    dipoles     : 2D array of dipoles              shape=(ndipoles,3)
     coordinates : positions of the dipoles,        shape=(ndipoles,3)
     gridpoints  : where to evaluate the potential, shape=(ngridpoints,3)
     """
