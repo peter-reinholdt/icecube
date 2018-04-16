@@ -17,7 +17,8 @@ if __name__ == "__main__":
     parser.add_argument('--potential',              dest='do_potential', action='store_true', help='Request potential cube file (true/false).')
     parser.add_argument('--cube-density',           dest='cube_density', default=4.0, type=float, help='Points/bohr to output to cube file.')
     parser.add_argument('--cube-buffer',            dest='cube_buffer', default=5.0, type=float, help='Buffer (in bohr) to add around min/max value of coordinates')
-    parser.add_argument('--surface-potential',      dest='do_surface_potential', action='store_true', help='Request calculation of ESP at molecular vdW surface')
+    parser.add_argument('--surface-potential-qm',   dest='do_surface_potential_qm', action='store_true', help='Request calculation of QM ESP at molecular vdW surface')
+    parser.add_argument('--surface-potential-cl',   dest='do_surface_potential_classic', action='store_true', help='Request calculation of classic ESP at molecular vdW surface')
     parser.add_argument('--surface-vdW-scale',      dest='surface_vdW_scale', default=2.0, type=float, help='Set the vdw radius scale parameter.') 
     parser.add_argument('--surface-point-density',  dest='surface_point_density', default=20.0, type=float, help='Set the vdw surface point density') 
 
@@ -71,12 +72,26 @@ if __name__ == "__main__":
             cube.write_cube("{}_QMESP_qmu.cube".format(args.qm_file_name), gr)
 
 
-    if args.do_surface_potential:
-        print("Computing ESP at molecular surface of {}*vdW with a {} point density".format(args.surface_vdW_scale, args.surface_point_density))
+    if args.do_surface_potential_qm or args.do_surface_potential_classic:
+        print("Computing molecular surface of {}*vdW with a {} point density".format(args.surface_vdW_scale, args.surface_point_density))
         gr.get_vdW_surface(args.surface_vdW_scale, args.surface_point_density)
-        gr.compute_potential(nprocs=args.nprocs)
-        with open("{}_{}_{}.dat".format(args.qm_file_name, args.surface_vdW_scale, args.surface_point_density), "w") as f:
-            f.write("#Rx,Ry,Rz,QM_ESP(R)\n")
-            for i in range(gr.xyzgrid.shape[0]):
-                f.write("{} {} {} {}\n".format(gr.xyzgrid[i,0], gr.xyzgrid[i,1], gr.xyzgrid[i,2], gr.data[i]))
-
+        if args.do_surface_potential_qm:
+            print("Computing ESP due to QM density and nuclei at the gridpoints")
+            gr.compute_potential(nprocs=args.nprocs)
+            with open("{}_{}_{}_qm.dat".format(args.qm_file_name, args.surface_vdW_scale, args.surface_point_density), "w") as f:
+                f.write("#Rx,Ry,Rz,QM_ESP(R)\n")
+                for i in range(gr.xyzgrid.shape[0]):
+                    f.write("{} {} {} {}\n".format(gr.xyzgrid[i,0], gr.xyzgrid[i,1], gr.xyzgrid[i,2], gr.data[i]))
+        if args.do_surface_potential_classic and args.classicfile:
+            print("Computing ESP due to classic charges at the gridpoints")
+            charge_esp = classic.charge_potential(charges, coordinates, gr.xyzgrid)
+            with open("{}_{}_{}_charge.dat".format(args.qm_file_name, args.surface_vdW_scale, args.surface_point_density), "w") as f:
+                f.write("#Rx,Ry,Rz,charge_ESP(R)\n")
+                for i in range(gr.xyzgrid.shape[0]):
+                    f.write("{} {} {} {}\n".format(gr.xyzgrid[i,0], gr.xyzgrid[i,1], gr.xyzgrid[i,2], charge_esp[i]))
+            print("Computing ESP due to classic dipoles at the same gridpoints")
+            dipole_esp = classic.charge_potential(charges, coordinates, gr.xyzgrid)
+            with open("{}_{}_{}_dipole.dat".format(args.qm_file_name, args.surface_vdW_scale, args.surface_point_density), "w") as f:
+                f.write("#Rx,Ry,Rz,dipole_ESP(R)\n")
+                for i in range(gr.xyzgrid.shape[0]):
+                    f.write("{} {} {} {}\n".format(gr.xyzgrid[i,0], gr.xyzgrid[i,1], gr.xyzgrid[i,2], dipole_esp[i]))
