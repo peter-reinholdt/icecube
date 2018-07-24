@@ -21,6 +21,7 @@ if __name__ == "__main__":
     parser.add_argument('--surface-potential-cl',   dest='do_surface_potential_classic', action='store_true', help='Request calculation of classic ESP at molecular vdW surface')
     parser.add_argument('--surface-vdW-scale',      dest='surface_vdW_scale', default=2.0, type=float, help='Set the vdw radius scale parameter.') 
     parser.add_argument('--surface-point-density',  dest='surface_point_density', default=20.0, type=float, help='Set the vdw surface point density') 
+    parser.add_argument('--read-grid',              dest='read_grid', default="", type=str, help='Read a manually generated grid instead of using the internal grid generation')
 
     args = parser.parse_args()
     if len(sys.argv) == 1:
@@ -73,8 +74,11 @@ if __name__ == "__main__":
 
 
     if args.do_surface_potential_qm or args.do_surface_potential_classic:
-        print("Computing molecular surface of {}*vdW with a {} point density".format(args.surface_vdW_scale, args.surface_point_density))
-        gr.get_vdW_surface(args.surface_vdW_scale, args.surface_point_density)
+        if not args.read_grid:
+            print("Computing molecular surface of {}*vdW with a {} point density".format(args.surface_vdW_scale, args.surface_point_density))
+            gr.get_vdW_surface(args.surface_vdW_scale, args.surface_point_density)
+        else:
+            gr.xyzgrid = np.loadtxt(args.read_grid, skiprows=1)
         if args.do_surface_potential_qm:
             print("Computing ESP due to QM density and nuclei at the gridpoints")
             gr.compute_potential(nprocs=args.nprocs)
